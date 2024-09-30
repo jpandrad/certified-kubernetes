@@ -140,3 +140,143 @@ KUBERNETES_PORT=tcp://10.96.0.1:443
 TERM=xterm
 HOME=/root
 ```
+
+
+Para que possamos passar item a item precisamos utilizar o `valueFrom`:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    resources: {}
+    env:
+    - name : MYIP
+      valueFrom:
+       configMapKeyRef: primeiro-cmap
+       key: ip
+#    envFrom:
+#    - configMapRef:
+#        name: primeiro-cmap
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+```
+
+
+Outra forma e montar o config map como `volume`:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    resources: {}
+    volumeMounts:
+    - name: configmap-volume
+      mountPath: /data
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  volumes:
+  - name: configmap-volume
+    configmap:
+      name: primeiro-cmap
+```
+
+
+Adicionando o `items` podemos especificar apenas uma informacao do nosso configmap como tambem colocar ele em um arquivo:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    resources: {}
+    volumeMounts:
+    - name: configmap-volume
+      mountPath: /data
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  volumes:
+  - name: configmap-volume
+    configmap:
+      name: primeiro-cmap
+      items:
+      - key: ip
+        path: mmyip.conf
+```
+
+
+## Criando um ConfigMap de forma rapida
+
+```shell
+kubectl create configmap second-cmap --from-literal=ip=10.0.0.2 --dry-run=client -o yaml
+```
+```yaml
+apiVersion: v1
+data:
+  ip: 10.0.0.2
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: second-cmap
+```
+
+```shell
+kubectl create configmap second-cmap --from-literal=ip=10.0.0.2 --from-literal=tier=web --dry-run=client -o yaml
+```
+```yaml
+apiVersion: v1
+data:
+  ip: 10.0.0.2
+  tier: web
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: second-cmap
+```
+
+Podemos editar ele utilizando o comando `kubectl edit cm`:
+```shell
+kubectl edit cm second-cmap
+configmap/second-cmap edited
+```
+
+Depois de alterado o `ConfigMap` devera ser feito um restart no Pod para aplicar as alteracoes.
+
+
+## ConfigMap Imutavel
+
+Para deixar o ConfigMap sem alteracao, adicione o `immutable` para `true`:
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: second-cmap
+data:
+  ip: 10.0.0.2
+  tier: web
+immutable: true
+```
+
+
+## PROVA
+1. Como criar de forma rapida
+2. As formas para Exportar para o ConfigMap
